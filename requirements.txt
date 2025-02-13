@@ -1,0 +1,15 @@
+paddlepaddle
+paddlespeech
+
+numpy==1.23.5
+
+tqdm
+loguru
+requests
+
+pydantic
+python-multipart
+fastapi
+starlette
+sse_starlette
+uvicorn
