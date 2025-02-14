@@ -26,11 +26,19 @@ def mount_routes(app: FastAPI, args):
     @app.post(f'{api_prefix}/text-normalize', tags=[api_tag], summary='List')
     async def text_normalize(
             body: TextRequestModel = Body(..., examples=[{
-                'sentence': [
-                    '电影中梁朝伟扮演的陈永仁的编号27149', '这块黄金重达324.75克', '我们班的最高总分为583分',
-                    '12~23、-1.5~2', '她出生于86年8月18日，她弟弟出生于1995年3月1日', '等会请在12:05请通知我',
-                    '今天的最低气温达到-10°C', '现场有7/12的观众投出了赞成票', '明天有62％的概率降雨',
-                    '随便来几个价格12块5，34.5元，20.1万', '这是固话0421-33441122', '这是手机+86 18544139121',
+                "sentence": [
+                    "电影中梁朝伟扮演的陈永仁的编号27149",
+                    "这块黄金重达324.75克",
+                    "我们班的最高总分为583分",
+                    "12~23、-1.5~2",
+                    "她出生于86年8月18日，她弟弟出生于1995年3月1日",
+                    "等会请在12:05请通知我",
+                    "今天的最低气温达到-10°C",
+                    "现场有7/12的观众投出了赞成票",
+                    "明天有62％的概率降雨",
+                    "随便来几个价格12块5，34.5元，20.1万",
+                    "这是固话0421-33441122",
+                    "这是手机+86 18544139121"
                 ],
             }])
     ) -> BaseResponse:
@@ -65,18 +73,34 @@ def mount_routes(app: FastAPI, args):
             return BaseResponse(data=TextResponseModel(sentences=[], result=[]))
 
         frontend = Frontend()
-
-        # 将句子列表中的句子转换为拼音 转不了的原样输出
         result = []
         for sentence in sentences:
-            sentence2 = re.sub('[A-Za-z0-9]+', '', sentence)
-            if sentence2.strip() == '':
-                # print("sentence", sentence)
-                result.append([sentence])
+            # 去除非中文字符
+            chinese_sentence = extract_chinese(sentence)
+            if not chinese_sentence.strip():
+                result.append([])
                 continue
-            result.append([''.join(i) for i in frontend.g2pW_model(sentence2)[0]])
+
+            try:
+                # 获取拼音结果
+                pinyin_result = frontend.g2pW_model(chinese_sentence)
+                if pinyin_result:
+                    result.append(pinyin_result[0])
+                else:
+                    result.append([])
+            except Exception as e:
+                # 处理转换过程中可能出现的异常
+                print(f"Error converting sentence {sentence}: {e}")
+                result.append([])
 
         # 返回包含原始句子和拼音结果的响应
         return BaseResponse(data=TextResponseModel(sentences=sentences, result=result))
+
+    # 获取字符串中文部分
+    def extract_chinese(text: str) -> str:
+        # 匹配所有中文字符
+        chinese_chars = re.findall(r'[\u4e00-\u9fff]+', text)
+        # 将匹配到的中文字符列表拼接成字符串
+        return ''.join(chinese_chars)
 
     pass
